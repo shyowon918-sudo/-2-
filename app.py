@@ -114,7 +114,7 @@ df3 = pd.read_sql(sql3, conn)
 
 fig3 = px.bar(df3, x="cause", y="total_area", color="total_area", 
              text_auto='.2f', color_continuous_scale="Reds", labels={"cause": "발생 원인", "total_area": "누적 피해 면적 (ha)", "total_area": "피해 규모"},
-        title="2024년 전국 산불 원인별 피해 규모 (그라데이션 적용)"
+        title="2024년 전국 산불 원인별 피해 규모 (그라데이션 적용)")
 
 fig3.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
 
