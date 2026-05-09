@@ -5,6 +5,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+#--- 상단 공지---
+st.error(" **📢 본 대시보드는 2024년 산불 발생 공공데이터를 기반으로 제작되었습니다.**")
+
+#--- 타이틀 ---
+st.markdown("<h1 style='text-align: center;'> ⛰️ 2024년 전국 산불 피해 공공데이터 분석 대시보드🔥</h1>", unsafe_allow_html=True)
+
+
 # 1. 페이지 설정
 st.set_page_config(page_title="2024 산불 정밀 분석 대시보드", layout="wide")
 
@@ -120,4 +127,11 @@ fig3.update_traces(textfont_size=12, textangle=0, textposition="outside", clipon
 
 st.plotly_chart(fig3, use_container_width=True)
 
-st.error("🚨 **대부분의 산불은 인재(人災)입니다. 우리의 부주의가 소중한 산림을 태웁니다.**")
+# --- 주의 문구 및 소방관 헌정 메시지 ---
+st.error("🚨 **[주의] 대부분의 산불은 인재(人災)입니다. 우리의 작은 부주의가 거대한 재난을 만듭니다.**")
+st.markdown("---")
+st.success("""
+**👨‍🚒 소방관님들께 드리는 헌사**  
+불길 속 재난 현장에서 국민의 생명과 안전을 지키기 위해 헌신하시는 소방관님들의 노고에 깊이 감사드립니다.  
+자신의 목숨을 걸고 위급한 순간 가장 먼저 달려와 절망 속에서 희망을 밝혀주시는 숭고한 봉사에 진심 어린 존경과 지지를 보냅니다.
+""")
