@@ -2,76 +2,153 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import plotly.express as px
-import plotly.graph_objects as go
 
 # 페이지 설정
-st.set_page_config(page_title="산불 분석 시각화 대시보드", layout="wide")
+st.set_page_config(page_title="전국 산불 대응 사각지대 분석", layout="wide")
 
-# --- 데이터베이스 세션 연결 ---
-def get_connection():
-    conn = sqlite3.connect(':memory:', check_same_thread=False) # 테스트를 위해 메모리 DB 사용
-    return conn
+# DB 연결 및 데이터 로드 (가정)
+conn = sqlite3.connect('wildfire.db', check_same_thread=False)
 
-conn = get_connection()
-cursor = conn.cursor()
+# --- 사이드바: 지역 필터 설정 ---
+st.sidebar.header("🗺️ 지역 필터 설정")
+st.sidebar.markdown("---")
 
-# --- 데이터 세팅 (샘플 데이터 생성) ---
-def init_db():
-    # 1. 소방서 데이터
-    cursor.execute("CREATE TABLE IF NOT EXISTS fire_stations (name TEXT, address TEXT, phone TEXT, x REAL, y REAL, region TEXT)")
-    # 2. 기상 데이터
-    cursor.execute("CREATE TABLE IF NOT EXISTS weather (region TEXT, year INTEGER, temp REAL, humidity REAL, rain REAL, wind_speed REAL)")
-    # 3. 산불 데이터
-    cursor.execute("CREATE TABLE IF NOT EXISTS wildfires (year INTEGER, region TEXT, cause TEXT, area REAL)")
+# 1. 광역 지역 선택
+sido_list = ["선택하세요", "강원", "경기", "경북", "경남", "전북", "전남", "충북", "충남", "서울", "인천", "대전", "대구", "부산", "울산", "세종", "제주"]
+selected_sido = st.sidebar.selectbox("1. 광역 지역(시/도)을 선택하세요", sido_list)
+
+# 2. 상세 지역 입력 (강조)
+st.sidebar.warning("⚠️ **반드시 아래에 상세 지역(시/군/구)을 입력해야 정확한 분석이 가능합니다.**")
+selected_sigungu = st.sidebar.text_input("2. 상세 지역(시/군/구) 입력", placeholder="예: 속초시, 안동시, 평창군")
+
+# --- 메인 화면 로직 ---
+st.title("🔥 전국 산불 대응 취약 지역 분석")
+
+# 지역 선택 여부 검증
+if selected_sido == "선택하세요" or not selected_sigungu:
+    # 사용자가 지역을 선택/입력하지 않았을 때 보여줄 초기 화면
+    st.info("💡 **좌측 사이드바에서 분석하고자 하는 [광역 지역]을 선택하고 [상세 지역]을 입력해 주세요.**")
+    st.image("https://images.unsplash.com/photo-1542125387-c71274d94f0a?auto=format&fit=crop&q=80&w=1000", caption="정확한 지역 분석을 위해 상세 위치 정보가 필요합니다.")
     
-    # 샘플 데이터 삽입 (예시)
-    stations = [('강원소방서', '강원도...', '033-', 128.0, 37.5, '강원'), ('경기소방서', '경기도...', '031-', 127.0, 37.2, '경기')]
-    cursor.executemany("INSERT INTO fire_stations VALUES (?,?,?,?,?,?)", stations)
+else:
+    # 사용자가 두 정보를 모두 입력했을 때만 차트 렌더링
+    st.success(f"🔎 **{selected_sido} {selected_sigungu}** 지역에 대한 분석 결과입니다.")
     
-    weather_data = [('강원', 2023, 15.2, 45.0, 100, 5.5), ('경기', 2023, 16.0, 55.0, 120, 3.2)]
-    cursor.executemany("INSERT INTO weather VALUES (?,?,?,?,?,?)", weather_data)
+    # 데이터 쿼리
+    query = f"""
+    SELECT 
+        w.region as sido,
+        w.location as sigungu, 
+        SUM(w.area) as total_area,
+        (SELECT COUNT(*) FROM fire_stations f WHERE f.address LIKE '%' || '{selected_sigungu}' || '%') as station_count
+    FROM wildfires w
+    WHERE w.region LIKE '%{selected_sido}%' AND w.location LIKE '%{selected_sigungu}%'
+    GROUP BY w.region, w.location
+    """
+    df_area = pd.read_sql(query, conn)
+
+    if not df_area.empty:
+        # [차트 1] 버블 차트 시각화
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            fig1 = px.scatter(
+                df_area, 
+                x="station_count", 
+                y="total_area", 
+                size="total_area", 
+                color_discrete_sequence=['#FF4B4B'],
+                hover_name="sigungu",
+                labels={"station_count": "소방시설 수", "total_area": "피해 면적(ha)"},
+                title=f"{selected_sigungu} 산불 대응 인프라 분석",
+                size_max=50
+            )
+            st.plotly_chart(fig1, use_container_width=True, key="bubble_detail")
+        
+        with col2:
+            st.subheader("📝 사용된 SQL")
+            st.code(query, language="sql")
+            st.subheader("💡 인사이트")
+            st.write(f"- {selected_sigungu} 내 소방시설 개수: **{df_area['station_count'].iloc[0]}개**")
+            st.write(f"- 누적 피해 면적: **{df_area['total_area'].iloc[0]} ha**")
+            
+    else:
+        st.error(f"❌ '{selected_sigungu}'에 대한 데이터를 찾을 수 없습니다. 지역명을 다시 확인해 주세요.")
+
+import streamlit as st
+import pandas as pd
+import sqlite3
+import plotly.express as px
+
+# 페이지 설정
+st.set_page_config(page_title="전국 산불 대응 사각지대 분석", layout="wide")
+
+# DB 연결 및 데이터 로드 (가정)
+conn = sqlite3.connect('wildfire.db', check_same_thread=False)
+
+# --- 사이드바: 지역 필터 설정 ---
+st.sidebar.header("🗺️ 지역 필터 설정")
+st.sidebar.markdown("---")
+
+# 1. 광역 지역 선택
+sido_list = ["선택하세요", "강원", "경기", "경북", "경남", "전북", "전남", "충북", "충남", "서울", "인천", "대전", "대구", "부산", "울산", "세종", "제주"]
+selected_sido = st.sidebar.selectbox("1. 광역 지역(시/도)을 선택하세요", sido_list)
+
+# 2. 상세 지역 입력 (강조)
+st.sidebar.warning("⚠️ **반드시 아래에 상세 지역(시/군/구)을 입력해야 정확한 분석이 가능합니다.**")
+selected_sigungu = st.sidebar.text_input("2. 상세 지역(시/군/구) 입력", placeholder="예: 속초시, 안동시, 평창군")
+
+# --- 메인 화면 로직 ---
+st.title("🔥 전국 산불 대응 취약 지역 분석")
+
+# 지역 선택 여부 검증
+if selected_sido == "선택하세요" or not selected_sigungu:
+    # 사용자가 지역을 선택/입력하지 않았을 때 보여줄 초기 화면
+    st.info("💡 **좌측 사이드바에서 분석하고자 하는 [광역 지역]을 선택하고 [상세 지역]을 입력해 주세요.**")
+    st.image("https://images.unsplash.com/photo-1542125387-c71274d94f0a?auto=format&fit=crop&q=80&w=1000", caption="정확한 지역 분석을 위해 상세 위치 정보가 필요합니다.")
     
-    fires = [(2023, '강원', '입산자 실화', 500.5), (2023, '경기', '담배꽁초', 50.2), (2023, '강원', '쓰레기 소각', 120.0)]
-    cursor.executemany("INSERT INTO wildfires VALUES (?,?,?,?)", fires)
-    conn.commit()
+else:
+    # 사용자가 두 정보를 모두 입력했을 때만 차트 렌더링
+    st.success(f"🔎 **{selected_sido} {selected_sigungu}** 지역에 대한 분석 결과입니다.")
+    
+    # 데이터 쿼리
+    query = f"""
+    SELECT 
+        w.region as sido,
+        w.location as sigungu, 
+        SUM(w.area) as total_area,
+        (SELECT COUNT(*) FROM fire_stations f WHERE f.address LIKE '%' || '{selected_sigungu}' || '%') as station_count
+    FROM wildfires w
+    WHERE w.region LIKE '%{selected_sido}%' AND w.location LIKE '%{selected_sigungu}%'
+    GROUP BY w.region, w.location
+    """
+    df_area = pd.read_sql(query, conn)
 
-init_db()
-
-# --- 대시보드 UI ---
-st.title("🔥 산불 발생 현황 및 취약 지역 분석 대시보드")
-st.markdown("산림청, 기상청 및 소방청 데이터를 통합하여 산불 위험을 분석합니다.")
-
-# 사이드바: 지역 선택
-region_list = ["전체", "강원", "경기", "경북", "경남", "충북", "충남", "전북", "전남"]
-selected_region = st.sidebar.selectbox("📍 분석 지역 선택", region_list)
-
-# --- 차트 1: 화재 대응 속도와 취약 지역 (버블 차트) ---
-st.header("1. 지역별 대응 취약 지역 파악")
-sql1 = """
-SELECT w.region, SUM(w.area) as total_area, COUNT(f.name) as station_count
-FROM wildfires w
-LEFT JOIN fire_stations f ON w.region = f.region
-GROUP BY w.region
-"""
-if selected_region != "전체":
-    sql1 = sql1.replace("GROUP BY", f"WHERE w.region = '{selected_region}' GROUP BY")
-
-df1 = pd.read_sql(sql1, conn)
-
-col1_1, col1_2 = st.columns([2, 1])
-with col1_1:
-    fig1 = px.scatter(df1, x="station_count", y="total_area", size="total_area", 
-                     color="region", hover_name="region", text="region",
-                     labels={"station_count": "소방서 수", "total_area": "누적 피해 면적(ha)"},
-                     title=f"지역별 산불 피해 면적 대비 소방 시설 현황")
-    st.plotly_chart(fig1, use_container_width=True)
-
-with col1_2:
-    st.subheader("📝 SQL Query")
-    st.code(sql1, language='sql')
-    st.subheader("💡 인사이트")
-    st.write("- 버블의 크기가 크고 왼쪽(소방서 적음)에 위치할수록 **대응 사각지대**입니다.")
-    st.write("- 선택한 지역의 소방 인프라 확충 필요성을 직관적으로 파악할 수 있습니다.")
+    if not df_area.empty:
+        # [차트 1] 버블 차트 시각화
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            fig1 = px.scatter(
+                df_area, 
+                x="station_count", 
+                y="total_area", 
+                size="total_area", 
+                color_discrete_sequence=['#FF4B4B'],
+                hover_name="sigungu",
+                labels={"station_count": "소방시설 수", "total_area": "피해 면적(ha)"},
+                title=f"{selected_sigungu} 산불 대응 인프라 분석",
+                size_max=50
+            )
+            st.plotly_chart(fig1, use_container_width=True, key="bubble_detail")
+        
+        with col2:
+            st.subheader("📝 사용된 SQL")
+            st.code(query, language="sql")
+            st.subheader("💡 인사이트")
+            st.write(f"- {selected_sigungu} 내 소방시설 개수: **{df_area['station_count'].iloc[0]}개**")
+            st.write(f"- 누적 피해 면적: **{df_area['total_area'].iloc[0]} ha**")
+            
+    else:
+        st.error(f"❌ '{selected_sigungu}'에 대한 데이터를 찾을 수 없습니다. 지역명을 다시 확인해 주세요.")
 
 st.divider()
 
