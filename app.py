@@ -45,8 +45,6 @@ def init_full_db():
 
 conn = init_full_db()
 
-# --- 상단 공지 ---
-st.error("📢 **본 대시보드는 2024년 산불 발생 자료를 기반으로 제작되었습니다.**")
 
 # --- 사이드바 ---
 st.sidebar.header("📍 상세 지역 분석")
