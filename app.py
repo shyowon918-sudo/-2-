@@ -310,38 +310,94 @@ def init_full_db():
 
 conn = init_full_db()
 
-# --- 상단 공지 ---
-st.error("📢 **본 대시보드는 2024년 산불 발생 공공데이터를 기반으로 제작되었습니다.**")
-st.markdown("<h1 style='text-align: center;'>⛰️ 2024년 전국 산불 피해 공공데이터 분석 대시보드 🔥</h1>", unsafe_allow_html=True)
 
-# --- 사이드바 ---
+# --- 대시보드 상단 알림 ---
+st.error("📢 **본 대시보드는 2024년 산불 발생 공공데이터를 기반으로 제작되었습니다.**")
+st.markdown("<h1 style='text-align: center;'>⛰️ 2024년 전국 산불 피해 분석 대시보드 🔥</h1>", unsafe_allow_html=True)
+
+# --- 사이드바 설정 ---
 st.sidebar.header("📍 상세 지역 분석")
-search_loc = st.sidebar.text_input("분석 지역 입력 (예: 수원, 철원, 파주, 군위 등)", key="search_input")
+search_loc = st.sidebar.text_input("분석 지역 입력 (예: 파주, 양평, 군위 등)", key="search_input")
 
 # --- [차트 1] 지역별 대응 분석 ---
 st.header("1. 지역별 피해 면적 vs 소방 인프라 비교")
+
 if not search_loc:
     st.info("💡 **왼쪽 사이드바에 분석하고 싶은 지역을 입력하세요.**")
 else:
-    sql1 = f"""SELECT location, SUM(area) as total_area, 
-(SELECT COUNT(*) FROM fire_stations f WHERE f.address LIKE '%{search_loc}%') as station_count 
-FROM wildfires WHERE location LIKE '%{search_loc}%' GROUP BY location"""
-    df1 = pd.read_sql(sql1, conn)
+    # SQL 쿼리: 선택 지역의 산불 피해 합계와 해당 지역 소방서 개수를 함께 조회
+    # f-string을 사용하여 입력된 search_loc를 검색 조건에 넣습니다.
+    sql1 = f"""
+    SELECT 
+        location, 
+        SUM(area) as total_area, 
+        (SELECT COUNT(*) FROM fire_stations f WHERE f.address LIKE '%{search_loc}%') as station_count 
+    FROM wildfires 
+    WHERE location LIKE '%{search_loc}%' 
+    GROUP BY location
+    """
     
+    df1 = pd.read_sql(sql1, conn)
+
     if not df1.empty:
         col1_1, col1_2 = st.columns([2, 1])
+        
         with col1_1:
+            # 이중 축 차트 생성
             fig1 = make_subplots(specs=[[{"secondary_y": True}]])
-            fig1.add_trace(go.Bar(x=df1['location'], y=df1['total_area'], name="피해 면적 (ha)", marker_color='rgba(255, 75, 75, 0.7)'), secondary_y=False)
-            fig1.add_trace(go.Scatter(x=df1['location'], y=df1['station_count'], name="소방 시설 수", mode='lines+markers+text', text=df1['station_count'], textposition="top center", line=dict(color='RoyalBlue', width=4), marker=dict(size=12)), secondary_y=True)
-            fig1.update_layout(title_text=f"'{search_loc}' 지역 산불 대응 지표", hovermode="x unified")
+            
+            # 1. 피해 면적 (막대 그래프)
+            fig1.add_trace(
+                go.Bar(
+                    x=df1['location'], 
+                    y=df1['total_area'], 
+                    name="피해 면적 (ha)", 
+                    marker_color='rgba(255, 75, 75, 0.7)'
+                ), 
+                secondary_y=False
+            )
+            
+            # 2. 소방 시설 수 (꺾은선 그래프)
+            fig1.add_trace(
+                go.Scatter(
+                    x=df1['location'], 
+                    y=df1['station_count'], 
+                    name="소방 시설 수", 
+                    mode='lines+markers+text',
+                    text=df1['station_count'],
+                    textposition="top center",
+                    line=dict(color='RoyalBlue', width=4),
+                    marker=dict(size=12)
+                ), 
+                secondary_y=True
+            )
+
+            # 차트 레이아웃 설정
+            fig1.update_layout(
+                title_text=f"'{search_loc}' 지역 산불 대응 지표 비교",
+                hovermode="x unified",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            
+            fig1.update_yaxes(title_text="<b>피해 면적</b> (ha)", secondary_y=False)
+            fig1.update_yaxes(title_text="<b>소방 시설 수</b> (개)", secondary_y=True)
+            
             st.plotly_chart(fig1, use_container_width=True)
+
         with col1_2:
             st.subheader("🔍 분석 정보")
             st.code(sql1, language='sql')
-            st.write(f"✅ **인사이트:** '{search_loc}' 지역의 피해 규모 대비 소방 시설의 밀집도를 분석합니다. 막대(피해)가 높고 선(시설)이 낮은 지점은 향후 소방 인력 및 장비 배치가 우선적으로 고려되어야 할 **'대응 사각지대'**로 해석할 수 있습니다.")
+            st.write(f"""
+            ✅ **인사이트:**
+            '{search_loc}' 지역의 피해 규모 대비 소방 시설의 밀집도를 분석합니다. 
+            
+            - **막대(피해 면적)**가 높고 **선(소방 시설)**이 낮은 지점은 산불 발생 위험이나 피해에 비해 인프라가 부족할 수 있는 **'대응 사각지대'**입니다. 
+            - 이러한 데이터는 향후 소방력 배치 우선순위 결정에 중요한 근거가 됩니다.
+            """)
     else:
-        st.warning(f"⚠️ '{search_loc}' 지역에 대한 직접적인 2024년 산불 기록이 없습니다.")
+        st.warning(f"⚠️ '{search_loc}' 지역에 대한 2024년 산불 데이터가 존재하지 않습니다.")
+
+st.divider()
 
 st.divider()
 
