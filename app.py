@@ -5,8 +5,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# 1. 페이지 설정 
-st.set_page_config(page_title="2024 산불 정밀 분석 대시보드", layout="wide")
 
 # --- 대시보드 상단 알림 ---
 st.error("📢 **본 대시보드는 2024년 산불 발생 공공데이터를 기반으로 제작되었습니다.**")
