@@ -22,9 +22,7 @@ def init_full_db():
         ('20241231','군위','입산자실화',19.79), ('20241230','양평','재처리부주의',0.06),
         ('20241230','파주','담뱃불실화',0.7), ('20241229','강릉','쓰레기소각',0.1),
         ('20240427','철원','입산자실화',0.3), ('20240401','수원','재처리부주의',1.2),
-        ('20241231', '군위','입산자실화', 19.79),('20241230', '양평', '재처리부주의', 0.06),
-    ('20241230', '양평', '재처리부주의', 0.06),('20241230', '파주', '담뱃불실화', 0.7),
-('20241229', '강릉', '쓰레기소각', 0.1),
+        ('20241231', '군위','입산자실화', 19.79),('20241230', '양평', '재처리부주의', 0.06),('20241230', '파주', '담뱃불실화', 0.7),
 ('20241228', '양양', '화목보일러불씨비산', 0.27),
 ('20241226', '여수', '담뱃불실화', 0.09),
 ('20241226', '순천', '담뱃불실화', 0.05),
@@ -346,6 +344,14 @@ FROM wildfires WHERE location LIKE '%{search_loc}%' GROUP BY location"""
         st.warning(f"⚠️ '{search_loc}' 지역에 대한 직접적인 2024년 산불 기록이 없습니다.")
 
 st.divider()
+
+def init_db():
+    # 1. 소방서 데이터
+    cursor.execute("CREATE TABLE IF NOT EXISTS fire_stations (name TEXT, address TEXT, phone TEXT, x REAL, y REAL, region TEXT)")
+    # 2. 기상 데이터
+    cursor.execute("CREATE TABLE IF NOT EXISTS weather (region TEXT, year INTEGER, temp REAL, humidity REAL, rain REAL, wind_speed REAL)")
+    # 3. 산불 데이터
+    cursor.execute("CREATE TABLE IF NOT EXISTS wildfires (year INTEGER, region TEXT, cause TEXT, area REAL)")
 
 # --- [차트 2] 전국 기상 상관관계 ---
 st.header("2. [전국] 습도와 피해 규모 상관관계 (정밀 분석)")
