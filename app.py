@@ -5,12 +5,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-
-# --- 대시보드 상단 알림 ---
-st.error("📢 **본 대시보드는 2024년 산불 발생 공공데이터를 기반으로 제작되었습니다.**")
-st.markdown("<h1 style='text-align: center;'>⛰️ 2024년 전국 산불 피해 분석 대시보드 🔥</h1>", unsafe_allow_html=True)
-
-
 # --- 데이터베이스 및 데이터 초기화 ---
 @st.cache_resource
 def init_full_db():
