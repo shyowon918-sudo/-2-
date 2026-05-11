@@ -93,7 +93,7 @@ st.divider()
 
 # --- [차트 3] 전국 발생 원인 ---
 st.header("3. [전국] 2024년 산불 원인별 피해 순위")
-sql3 = "SELECT 원인, SUM(area) as 피해 면적 FROM wildfires GROUP BY cause ORDER BY total_area DESC"
+sql3 = "SELECT cause, SUM(area) as total_area FROM wildfires GROUP BY cause ORDER BY total_area DESC"
 df3 = pd.read_sql(sql3, conn)
 
 col3_1, col3_2 = st.columns([2, 1])
