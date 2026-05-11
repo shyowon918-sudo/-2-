@@ -345,13 +345,6 @@ FROM wildfires WHERE location LIKE '%{search_loc}%' GROUP BY location"""
 
 st.divider()
 
-def init_db():
-    # 1. 소방서 데이터
-    cursor.execute("CREATE TABLE IF NOT EXISTS fire_stations (name TEXT, address TEXT, phone TEXT, x REAL, y REAL, region TEXT)")
-    # 2. 기상 데이터
-    cursor.execute("CREATE TABLE IF NOT EXISTS weather (region TEXT, year INTEGER, temp REAL, humidity REAL, rain REAL, wind_speed REAL)")
-    # 3. 산불 데이터
-    cursor.execute("CREATE TABLE IF NOT EXISTS wildfires (year INTEGER, region TEXT, cause TEXT, area REAL)")
 
 # --- [차트 2] 전국 기상 상관관계 ---
 st.header("2. [전국] 습도와 피해 규모 상관관계 (정밀 분석)")
