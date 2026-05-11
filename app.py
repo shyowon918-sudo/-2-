@@ -314,10 +314,6 @@ conn = init_full_db()
 st.error("📢 **본 대시보드는 2024년 산불 발생 공공데이터를 기반으로 제작되었습니다.**")
 st.markdown("<h1 style='text-align: center;'>⛰️ 2024년 전국 산불 피해 분석 대시보드 🔥</h1>", unsafe_allow_html=True)
 
-# --- 사이드바 설정 ---
-st.sidebar.header("📍 상세 지역 분석")
-search_loc = st.sidebar.text_input("분석 지역 입력 (예: 파주, 양평, 군위 등)", key="search_input")
-
 import sqlite3
 import pandas as pd
 import streamlit as st
