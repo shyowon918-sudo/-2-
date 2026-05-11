@@ -44,7 +44,7 @@ st.markdown("<h1 style='text-align: center;'>⛰️ 2024년 전국 산불 피해
 
 # --- 사이드바 ---
 st.sidebar.header("📍 상세 지역 분석")
-search_loc = st.sidebar.text_input("분석 지역 입력 (예: 수원, 철원, 파주, 군위)", key="search_input")
+search_loc = st.sidebar.text_input("분석 지역 입력 (예: 수원, 철원, 파주, 군위 등)", key="search_input")
 
 # --- [차트 1] 지역별 대응 분석 ---
 st.header("1. 지역별 피해 면적 vs 소방 인프라 비교")
